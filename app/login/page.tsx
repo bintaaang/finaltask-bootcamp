@@ -15,11 +15,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
@@ -33,10 +36,20 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await apiLogin(values)
-      console.log("RESPON API LOGIN:", data)
-      localStorage.setItem("token", data.token) // simpan JWT
-      window.location.href = "/dashboard"
+      // login ke API
+      const { token, role } = await apiLogin(values)
+
+      // simpan token
+      localStorage.setItem("token", token)
+
+      // redirect sesuai role
+      if (role === "admin") {
+        router.push("/dashboard")
+      } else if (role === "courier") {
+        router.push("/courier")
+      } else {
+        setError("Role tidak dikenali")
+      }
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan")
     } finally {
@@ -74,7 +87,11 @@ export default function LoginPage() {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Masukkan password" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Masukkan password"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
